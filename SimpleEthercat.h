@@ -5,11 +5,11 @@
 #include "ethercat.h"
 #include <thread>
 
-class SIMPLE_ETHERCAT
+class SimpleEthercat
 {
 public:
 
-    // Error messgage string that is last error event on simpleEthercat oject.
+    // Error messgage string that is last error event on SimpleEthercat oject.
     std::string errorMessage;
 
     // Initial ethercat port. find and auto-config slaves.

@@ -8,10 +8,10 @@ will wait for responses from slaves before considering them as not responding.
 #define EC_TIMEOUTMON 500
 
 
-bool SIMPLE_ETHERCAT::init(const char* port_name)
+bool SimpleEthercat::init(const char* port_name)
 {
     // Start the thread_errorCheck using a member function
-    //thread_errorCheck = std::thread(&SIMPLE_ETHERCAT::ecatcheck, this);
+    //thread_errorCheck = std::thread(&SimpleEthercat::ecatcheck, this);
 
     /* initialise SOEM, bind socket to port_name */
     /*
@@ -33,7 +33,7 @@ bool SIMPLE_ETHERCAT::init(const char* port_name)
     return true;
 }
 
-bool SIMPLE_ETHERCAT::configSlaves(void)
+bool SimpleEthercat::configSlaves(void)
 {
     /* find and auto-config slaves */
     /*
@@ -71,7 +71,7 @@ bool SIMPLE_ETHERCAT::configSlaves(void)
     return true;
 }
 
-bool SIMPLE_ETHERCAT::configMap(void)
+bool SimpleEthercat::configMap(void)
 {
     /*
     Depending on whether forceByteAlignment is set, the IOmap is configured either with byte alignment 
@@ -116,7 +116,7 @@ bool SIMPLE_ETHERCAT::configMap(void)
     return true;
 }
 
-bool SIMPLE_ETHERCAT::configDc(void)
+bool SimpleEthercat::configDc(void)
 {
     // distributed clocks are configured using ec_configdc.
     if(!ec_configdc())
@@ -135,7 +135,7 @@ bool SIMPLE_ETHERCAT::configDc(void)
     return true;
 }
 
-void SIMPLE_ETHERCAT::listSlaves(void)
+void SimpleEthercat::listSlaves(void)
 {
     _readStates();
     for (int cnt = 1; cnt <= ec_slavecount; cnt++) 
@@ -149,7 +149,7 @@ void SIMPLE_ETHERCAT::listSlaves(void)
     }
 }
 
-bool SIMPLE_ETHERCAT::setOperationalState(void)
+bool SimpleEthercat::setOperationalState(void)
 {
     ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
     ec_readstate();
@@ -237,7 +237,7 @@ bool SIMPLE_ETHERCAT::setOperationalState(void)
     return true;
 }
 
-void SIMPLE_ETHERCAT::setInitState(void)
+void SimpleEthercat::setInitState(void)
 {
     ec_statecheck(0, EC_STATE_INIT, 50000);
     ec_readstate();
@@ -261,7 +261,7 @@ void SIMPLE_ETHERCAT::setInitState(void)
     _state = EC_STATE_INIT;
 }
 
-bool SIMPLE_ETHERCAT::setPreOperationalState(void)
+bool SimpleEthercat::setPreOperationalState(void)
 {
     ec_statecheck(0, EC_STATE_PRE_OP, 50000);
     ec_readstate();
@@ -287,7 +287,7 @@ bool SIMPLE_ETHERCAT::setPreOperationalState(void)
     return true;
 }
 
-bool SIMPLE_ETHERCAT::setSafeOperationalState(void)
+bool SimpleEthercat::setSafeOperationalState(void)
 {
     bool flag = false;
     // Wait for all slaves to reach SAFE_OP state
@@ -337,7 +337,7 @@ bool SIMPLE_ETHERCAT::setSafeOperationalState(void)
     return flag;
 }
 
-void SIMPLE_ETHERCAT::close(void)
+void SimpleEthercat::close(void)
 {   
     /* stop SOEM, close socket */
     /*
@@ -347,24 +347,24 @@ void SIMPLE_ETHERCAT::close(void)
     _joinThreadErrorCheck();
 }
 
-void SIMPLE_ETHERCAT::_readStates(void)
+void SimpleEthercat::_readStates(void)
 {
     ec_readstate();
 }
 
-int SIMPLE_ETHERCAT::getState(void) 
+int SimpleEthercat::getState(void) 
 {
     _readStates();
     return ec_slave[1].state;
 }
 
-int SIMPLE_ETHERCAT::getState(uint16_t slave_id) 
+int SimpleEthercat::getState(uint16_t slave_id) 
 {
     _readStates();
     return ec_slave[slave_id].state;
 }
 
-void SIMPLE_ETHERCAT::showStates(void)
+void SimpleEthercat::showStates(void)
 {
     _readStates();
     for(int i = 1; i<=ec_slavecount ; i++)
@@ -378,7 +378,7 @@ void SIMPLE_ETHERCAT::showStates(void)
     }
 }
 
-bool SIMPLE_ETHERCAT::isAllStatesOPT(void)
+bool SimpleEthercat::isAllStatesOPT(void)
 {
     _readStates();
     
@@ -393,7 +393,7 @@ bool SIMPLE_ETHERCAT::isAllStatesOPT(void)
     return true;
 }
 
-OSAL_THREAD_FUNC SIMPLE_ETHERCAT::_ecatcheck(/*void* ptr*/)
+OSAL_THREAD_FUNC SimpleEthercat::_ecatcheck(/*void* ptr*/)
 {
     int slave;
     //(void)ptr;                  /* Not used */
@@ -493,7 +493,7 @@ OSAL_THREAD_FUNC SIMPLE_ETHERCAT::_ecatcheck(/*void* ptr*/)
     }
 }
 
-void SIMPLE_ETHERCAT::_joinThreadErrorCheck(void)
+void SimpleEthercat::_joinThreadErrorCheck(void)
 {
     if(_thread_errorCheck.joinable())
     {
@@ -501,28 +501,28 @@ void SIMPLE_ETHERCAT::_joinThreadErrorCheck(void)
     }
 }
 
-int SIMPLE_ETHERCAT::readSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, void *buffer)
+int SimpleEthercat::readSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, void *buffer)
 {
     int wkc;
     wkc = ec_SDOread(slave_num, index, subindex, FALSE, &size, buffer, EC_TIMEOUTRXM);
     return wkc;
 }
 
-int SIMPLE_ETHERCAT::writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, void *buffer)
+int SimpleEthercat::writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, void *buffer)
 {
     int wkc;
     wkc = ec_SDOwrite(slave_num, index, subindex, FALSE, size, buffer, EC_TIMEOUTRXM);
     return wkc;
 }
 
-int SIMPLE_ETHERCAT::writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, uint8_t buffer)
+int SimpleEthercat::writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, uint8_t buffer)
 {
     int wkc;
     wkc = ec_SDOwrite(slave_num, index, subindex, FALSE, size, &buffer, EC_TIMEOUTRXM);
     return wkc;
 }
 
-std::string SIMPLE_ETHERCAT::_slaveStateNum2Str(int num_state)
+std::string SimpleEthercat::_slaveStateNum2Str(int num_state)
 {
     std::string str_state;
 
@@ -550,7 +550,7 @@ std::string SIMPLE_ETHERCAT::_slaveStateNum2Str(int num_state)
     return  str_state;
 }
 
-bool SIMPLE_ETHERCAT::updateProccess(void)
+bool SimpleEthercat::updateProccess(void)
 {
     ec_send_processdata();
     int wkc = ec_receive_processdata(EC_TIMEOUTRET);
