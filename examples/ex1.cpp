@@ -20,7 +20,7 @@ using namespace std;
 // ###############################################
 // Global Variables
 
-SIMPLE_ETHERCAT ETHERCAT;
+SimpleEthercat ETHERCAT;
 const char port_name[] = "enp2s0";
 
 // ################################################
