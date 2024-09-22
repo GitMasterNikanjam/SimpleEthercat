@@ -1,4 +1,4 @@
-#include "simpleEthercat.h"
+#include "SimpleEthercat.h"
 
 /*
 This macro defines the timeout value (in milliseconds) used for 
@@ -25,10 +25,10 @@ bool SIMPLE_ETHERCAT::init(const char* port_name)
         return false;
     }
 
-    state = EC_STATE_INIT;
+    _state = EC_STATE_INIT;
 
     // update read states of slaves.
-    readStates();
+    _readStates();
 
     return true;
 }
@@ -53,20 +53,20 @@ bool SIMPLE_ETHERCAT::configSlaves(void)
         where the SOEM library scans the network, identifies connected EtherCAT slaves, 
         and configures them for communication.
         */
-        slaveCount = ec_slavecount;
+        _slaveCount = ec_slavecount;
 
-        state = EC_STATE_PRE_OP;
+        _state = EC_STATE_PRE_OP;
     }
     else
     {
         errorMessage = "Failed to config slaves. No slaves detected!";
         // update read states of slaves.
-        readStates();
+        _readStates();
         return false;
     }
 
     // update read states of slaves.
-    readStates();
+    _readStates();
 
     return true;
 }
@@ -98,16 +98,16 @@ bool SIMPLE_ETHERCAT::configMap(void)
     specific requirements of the EtherCAT network and the connected slaves, byte alignment may or 
     may not be necessary.
     */
-    if (forceByteAlignment)
+    if (_forceByteAlignment)
     {
-    IOmapSize = ec_config_map_aligned(&IOmap);
+    _IOmapSize = ec_config_map_aligned(&_IOmap);
     }
     else
     {
-    IOmapSize = ec_config_map(&IOmap);
+    _IOmapSize = ec_config_map(&_IOmap);
     }
 
-    if(IOmapSize < 1)
+    if(_IOmapSize < 1)
     {
         errorMessage = "simpleEthercat error: configMap() failed!";
         return false;
@@ -123,25 +123,25 @@ bool SIMPLE_ETHERCAT::configDc(void)
     {
         errorMessage = "simpleEthercat error: configDc() failed!";
         // update read states of slaves.
-        readStates();
+        _readStates();
         return false;
     }
 
-    state = EC_STATE_SAFE_OP;
+    _state = EC_STATE_SAFE_OP;
 
     // update read states of slaves.
-    readStates();
+    _readStates();
 
     return true;
 }
 
 void SIMPLE_ETHERCAT::listSlaves(void)
 {
-    readStates();
+    _readStates();
     for (int cnt = 1; cnt <= ec_slavecount; cnt++) 
     {
         std::string str_state;
-        str_state = slaveStateNum2Str(ec_slave[cnt].state);
+        str_state = _slaveStateNum2Str(ec_slave[cnt].state);
 
         printf("\nSlave:%2d Name:%s\t RXsize: %3dbytes, TXsize: %3dbytes\t State: %8s\t Delay: %8d[ns]\t Has DC: %1d\n",
                 cnt, ec_slave[cnt].name, ec_slave[cnt].Obits/8, ec_slave[cnt].Ibits/8,
@@ -232,7 +232,7 @@ bool SIMPLE_ETHERCAT::setOperationalState(void)
     }
         
 
-    state = EC_STATE_OPERATIONAL;
+    _state = EC_STATE_OPERATIONAL;
 
     return true;
 }
@@ -258,7 +258,7 @@ void SIMPLE_ETHERCAT::setInitState(void)
     }
     while (chk-- && (ec_slave[0].state != EC_STATE_INIT));
 
-    state = EC_STATE_INIT;
+    _state = EC_STATE_INIT;
 }
 
 bool SIMPLE_ETHERCAT::setPreOperationalState(void)
@@ -282,7 +282,7 @@ bool SIMPLE_ETHERCAT::setPreOperationalState(void)
     }
     while (chk-- && (ec_slave[0].state != EC_STATE_PRE_OP));
 
-    state = EC_STATE_PRE_OP;
+    _state = EC_STATE_PRE_OP;
 
     return true;
 }
@@ -323,11 +323,11 @@ bool SIMPLE_ETHERCAT::setSafeOperationalState(void)
     and input process data frames in the EtherCAT network, and it is used for monitoring and 
     synchronization purposes within the network.
     */
-    expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
+    _expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
 
     if(flag == TRUE)
     {
-        state = EC_STATE_SAFE_OP;
+        _state = EC_STATE_SAFE_OP;
     }
     else
     {
@@ -344,33 +344,33 @@ void SIMPLE_ETHERCAT::close(void)
     Finally, regardless of the outcome, the EtherCAT connection is closed using ec_close.
     */
     ec_close();
-    joinThreadErrorCheck();
+    _joinThreadErrorCheck();
 }
 
-void SIMPLE_ETHERCAT::readStates(void)
+void SIMPLE_ETHERCAT::_readStates(void)
 {
     ec_readstate();
 }
 
 int SIMPLE_ETHERCAT::getState(void) 
 {
-    readStates();
+    _readStates();
     return ec_slave[1].state;
 }
 
 int SIMPLE_ETHERCAT::getState(uint16_t slave_id) 
 {
-    readStates();
+    _readStates();
     return ec_slave[slave_id].state;
 }
 
 void SIMPLE_ETHERCAT::showStates(void)
 {
-    readStates();
+    _readStates();
     for(int i = 1; i<=ec_slavecount ; i++)
     {
         std::string str_state;
-        str_state = slaveStateNum2Str(ec_slave[i].state);
+        str_state = _slaveStateNum2Str(ec_slave[i].state);
         
         printf("Slave %2d, State=%8s, StatusCode=0x%4.4x : %s\n",
             i, str_state.c_str(), ec_slave[i].ALstatuscode, ec_ALstatuscode2string(ec_slave[i].ALstatuscode));
@@ -380,7 +380,7 @@ void SIMPLE_ETHERCAT::showStates(void)
 
 bool SIMPLE_ETHERCAT::isAllStatesOPT(void)
 {
-    readStates();
+    _readStates();
     
     for(int i = 1; i<=ec_slavecount ; i++)
     {
@@ -393,7 +393,7 @@ bool SIMPLE_ETHERCAT::isAllStatesOPT(void)
     return true;
 }
 
-OSAL_THREAD_FUNC SIMPLE_ETHERCAT::ecatcheck(/*void* ptr*/)
+OSAL_THREAD_FUNC SIMPLE_ETHERCAT::_ecatcheck(/*void* ptr*/)
 {
     int slave;
     //(void)ptr;                  /* Not used */
@@ -408,15 +408,15 @@ OSAL_THREAD_FUNC SIMPLE_ETHERCAT::ecatcheck(/*void* ptr*/)
          Inside the loop, it checks if the system is in operational mode (inOP) and if there are any 
          issues detected (wkc < expectedWKC or ec_group[currentgroup].docheckstate).
          */
-        if( (state == EC_STATE_OPERATIONAL) && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
+        if( (_state == EC_STATE_OPERATIONAL) && ((_wkc < _expectedWKC) || ec_group[_currentgroup].docheckstate))
         {
-            if (needlf)
+            if (_needlf)
             {
-               needlf = FALSE;
+               _needlf = FALSE;
                printf("\n");
             }
             /* one ore more slaves are not responding */
-            ec_group[currentgroup].docheckstate = FALSE;
+            ec_group[_currentgroup].docheckstate = FALSE;
             ec_readstate();
 
             /*
@@ -431,9 +431,9 @@ OSAL_THREAD_FUNC SIMPLE_ETHERCAT::ecatcheck(/*void* ptr*/)
             */
             for (slave = 1; slave <= ec_slavecount; slave++)
             {
-               if ((ec_slave[slave].group == currentgroup) && (ec_slave[slave].state != EC_STATE_OPERATIONAL))
+               if ((ec_slave[slave].group == _currentgroup) && (ec_slave[slave].state != EC_STATE_OPERATIONAL))
                {
-                  ec_group[currentgroup].docheckstate = TRUE;
+                  ec_group[_currentgroup].docheckstate = TRUE;
                   if (ec_slave[slave].state == (EC_STATE_SAFE_OP + EC_STATE_ERROR))
                   {
                      printf("ERROR : slave %d is in SAFE_OP + ERROR, attempting ack.\n", slave);
@@ -482,7 +482,7 @@ OSAL_THREAD_FUNC SIMPLE_ETHERCAT::ecatcheck(/*void* ptr*/)
                   }
                }
             }
-            if(!ec_group[currentgroup].docheckstate)
+            if(!ec_group[_currentgroup].docheckstate)
                printf("OK : all slaves resumed OPERATIONAL.\n");
         }
         /*
@@ -493,11 +493,11 @@ OSAL_THREAD_FUNC SIMPLE_ETHERCAT::ecatcheck(/*void* ptr*/)
     }
 }
 
-void SIMPLE_ETHERCAT::joinThreadErrorCheck(void)
+void SIMPLE_ETHERCAT::_joinThreadErrorCheck(void)
 {
-    if(thread_errorCheck.joinable())
+    if(_thread_errorCheck.joinable())
     {
-        thread_errorCheck.join();
+        _thread_errorCheck.join();
     }
 }
 
@@ -522,7 +522,7 @@ int SIMPLE_ETHERCAT::writeSDO(uint16 slave_num, uint16 index, uint8 subindex, in
     return wkc;
 }
 
-std::string SIMPLE_ETHERCAT::slaveStateNum2Str(int num_state)
+std::string SIMPLE_ETHERCAT::_slaveStateNum2Str(int num_state)
 {
     std::string str_state;
 
@@ -555,18 +555,8 @@ bool SIMPLE_ETHERCAT::updateProccess(void)
     ec_send_processdata();
     int wkc = ec_receive_processdata(EC_TIMEOUTRET);
     
-    if(wkc < expectedWKC)
+    if(wkc < _expectedWKC)
         return FALSE;
     
     return TRUE;
-}
-
-void SIMPLE_ETHERCAT::printError(void)
-{
-    printf("%s\n", errorMessage.c_str());
-}
-
-std::string SIMPLE_ETHERCAT::getError(void)
-{
-    return errorMessage;
 }

@@ -8,6 +8,10 @@
 class SIMPLE_ETHERCAT
 {
 public:
+
+    // Error messgage string that is last error event on simpleEthercat oject.
+    std::string errorMessage;
+
     // Initial ethercat port. find and auto-config slaves.
     // Return true if successed.
     bool init(const char* port_name);
@@ -29,10 +33,12 @@ public:
 
     // Write proccess for SDO objects dictionary.
     int writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, void *buffer);
+
+    // Write proccess for SDO objects dictionary.
     int writeSDO(uint16 slave_num, uint16 index, uint8 subindex, int size, uint8_t buffer);
 
     // Return number of slaves that detected.
-    int getSlaveCount(void) {return slaveCount;};
+    int getSlaveCount(void) {return _slaveCount;};
     
     // Set init state for all slaves.
     void setInitState(void);
@@ -61,10 +67,8 @@ public:
     // Return certain slave ethercat state.
     int getState(uint16_t slave_id);
 
-    int32_t getExpectedWKC(void) {return expectedWKC;}
-    
-    // Print last error accured in comminication.
-    void printError(void);
+    // Return expectedWKC.
+    int32_t getExpectedWKC(void) {return _expectedWKC;}
 
     // Close ethercat port.
     void close(void);
@@ -75,56 +79,50 @@ private:
     /* The value 4096 is suitable for most applications.*/
     /* Hint: Not all cells in the array are sent to the slaves; only those that are needed.*/
     /* Array for Input/Output mapping.*/
-    char IOmap[4096];  
+    char _IOmap[4096];  
 
-    int IOmapSize;
+    int _IOmapSize;
 
     // Number of slave that detect on ethertcat port.
-    int slaveCount;
+    int _slaveCount;
 
-    bool forceByteAlignment = TRUE;
-    int expectedWKC;
+    bool _forceByteAlignment = TRUE;
+    int _expectedWKC;
 
     // Indicate current state of ethercat slaves.
-    int state = EC_STATE_NONE;
+    int _state = EC_STATE_NONE;
 
     /*
     This volatile integer variable holds the actual working counter value for the current EtherCAT communication cycle. 
     It is updated dynamically during communication to track the amount of process data received from the slaves.
     */
-    volatile int wkc;
+    volatile int _wkc;
 
     /*
     This variable holds the index of the current group of EtherCAT slaves being processed. 
     It is used in conjunction with the ec_group array to manage communication with multiple groups of slaves.
     */
-    uint8 currentgroup = 0;
+    uint8 _currentgroup = 0;
 
     /*
     This boolean variable indicates whether a line feed (LF) character is needed for printing output. 
     It helps in formatting the output by determining when to add new lines.
     */
-    boolean needlf = FALSE;
+    boolean _needlf = FALSE;
 
     // thread for ethercat error handling.
-    std::thread thread_errorCheck;
-
-    // Error messgage string that is last error event on simpleEthercat oject.
-    std::string errorMessage;
-
-    // Reteurn last error accured for simpleEthercat object.
-    std::string getError(void);
+    std::thread _thread_errorCheck;
 
     // Refresh states of all slaves state and read them.
-    void readStates(void);
+    void _readStates(void);
 
     // thread function for ethercat error handling.
-    OSAL_THREAD_FUNC ecatcheck();
+    OSAL_THREAD_FUNC _ecatcheck();
 
     // Attach thread for function ethercat error handling. 
-    void joinThreadErrorCheck(void);
+    void _joinThreadErrorCheck(void);
 
-    std::string slaveStateNum2Str(int slave_num);
+    std::string _slaveStateNum2Str(int slave_num);
 
 };
 
