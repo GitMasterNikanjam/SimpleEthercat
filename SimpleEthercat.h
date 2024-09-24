@@ -1,22 +1,36 @@
 #ifndef _SIMPLEETHERCAT_H
 #define _SIMPLEETHERCAT_H
 
+// ##################################################################################
+// Include libraries:
+
 #include <iostream>        // standard I/O operations
 #include "ethercat.h"
 #include <thread>
+
+// ###################################################################################
+// SimpleEthercat class:
 
 class SimpleEthercat
 {
 public:
 
-    // Error messgage string that is last error event on SimpleEthercat oject.
+    // Last error message accured for object.
     std::string errorMessage;
 
-    // Initial ethercat port. find and auto-config slaves.
-    // Return true if successed.
+    /**
+     * @brief Initial ethercat port.   
+     * initialise SOEM, bind socket to port_name.   
+     * Start the thread_errorCheck.  
+     * @return true if successed.
+     *  */  
     bool init(const char* port_name);
 
-    // find and auto-config slaves.
+    /**
+     * Find and auto-config slaves.
+     * Set all slave operation state to Pre operational.
+     * @return true if successed.
+     *  */ 
     bool configSlaves(void);
 
     // Print list of slaves that detected. show slave number, name, RX size,TX size, state, Pdelay and distrubution clock ability.
@@ -89,7 +103,7 @@ private:
     bool _forceByteAlignment = TRUE;
     int _expectedWKC;
 
-    // Indicate current state of ethercat slaves.
+    // Indicate current ethercat operational state of SimpleEthercat object.
     int _state = EC_STATE_NONE;
 
     /*

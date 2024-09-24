@@ -20,7 +20,7 @@ using namespace std;
 // ###############################################
 // Global Variables
 
-SimpleEthercat ETHERCAT;
+SimpleEthercat ethercat;
 const char port_name[] = "enp2s0";
 
 // ################################################
@@ -28,33 +28,33 @@ const char port_name[] = "enp2s0";
 int main(void)
 {
 
-    if (ETHERCAT.init(port_name))
+    if (ethercat.init(port_name))
     {
         printf("Ethercat on %s succeeded.\n",port_name);
     }
     else
     {
-        printf("No socket connection on %s\nExecute as root maybe solve problem \n",port_name);
+        cout << ethercat.errorMessage << endl;
         return 1;
     }
 
-    if(ETHERCAT.configSlaves())
+    if(ethercat.configSlaves())
     {
         printf("Slaves mapped, state to SAFE_OP.\n");
     }
     else
     {
-        printf("Failed to reach Safe-operational state\n");
+        cout << ethercat.errorMessage << endl;
     }
 
-    printf("%d slaves found and configured.\n",ETHERCAT.getSlaveCount());
+    printf("%d slaves found and configured.\n",ethercat.getSlaveCount());
 
-    ETHERCAT.configMap();
-    ETHERCAT.configDc();
+    ethercat.configMap();
+    ethercat.configDc();
 
-    ETHERCAT.listSlaves();
+    ethercat.listSlaves();
 
-    if(ETHERCAT.setOperationalState())
+    if(ethercat.setOperationalState())
     {
         printf("Operational state reached for all slaves.\n");
     }
@@ -65,15 +65,15 @@ int main(void)
         the code prints a message indicating which slaves failed to reach the operational state.
         */
         printf("Not all slaves reached operational state.\n");
-        ETHERCAT.showStates();
+        ethercat.showStates();
     }
 
     printf("\nRequest init state for all slaves\n");
-    ETHERCAT.setInitState();
+    ethercat.setInitState();
 
     printf("close ethercat socket\n");
-    ETHERCAT.close();
+    ethercat.close();
     
-
+    printf("debug\n");
     return 0;
 }

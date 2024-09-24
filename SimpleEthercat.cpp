@@ -11,7 +11,7 @@ will wait for responses from slaves before considering them as not responding.
 bool SimpleEthercat::init(const char* port_name)
 {
     // Start the thread_errorCheck using a member function
-    //thread_errorCheck = std::thread(&SimpleEthercat::ecatcheck, this);
+    _thread_errorCheck = std::thread(&SimpleEthercat::_ecatcheck, this);
 
     /* initialise SOEM, bind socket to port_name */
     /*
@@ -22,13 +22,11 @@ bool SimpleEthercat::init(const char* port_name)
     */
     if(!ec_init(port_name))
     {
+        errorMessage = "Error SimpleEthercat: No socket connection on " + std::string(port_name) + "\nExecute as root maybe solve problem.";
         return false;
     }
 
     _state = EC_STATE_INIT;
-
-    // update read states of slaves.
-    _readStates();
 
     return true;
 }
@@ -55,18 +53,30 @@ bool SimpleEthercat::configSlaves(void)
         */
         _slaveCount = ec_slavecount;
 
-        _state = EC_STATE_PRE_OP;
     }
     else
     {
-        errorMessage = "Failed to config slaves. No slaves detected!";
+        errorMessage = "Error SimpleEthercat: Failed to config slaves. No slaves detected!";
         // update read states of slaves.
         _readStates();
         return false;
     }
 
+    setPreOperationalState();
+
     // update read states of slaves.
     _readStates();
+
+    for (int cnt = 1; cnt <= ec_slavecount; cnt++) 
+    {
+        if( ec_slave[cnt].state != EC_STATE_PRE_OP )
+        {
+            errorMessage = "Error SimpleEthercat: Ethercat state can not switch to Pre Operational.";
+            return false;
+        }
+    }
+
+    _state = EC_STATE_PRE_OP;
 
     return true;
 }
