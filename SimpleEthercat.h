@@ -84,6 +84,18 @@ public:
     // Return expectedWKC.
     int32_t getExpectedWKC(void) {return _expectedWKC;}
 
+    /**
+     * Get specific ethercat manufacture id number for certain slave id.
+     * @return zero if not successed.
+     */
+    uint32_t getManufactureID(uint16_t slave_id);
+
+    /**
+     * Get specific ethercat product id number for certain slave id.
+     * @return zero if not successed.
+     */
+    uint32_t getProductID(uint16_t slave_id);
+
     // Close ethercat port.
     void close(void);
     

@@ -11,7 +11,7 @@ will wait for responses from slaves before considering them as not responding.
 bool SimpleEthercat::init(const char* port_name)
 {
     // Start the thread_errorCheck using a member function
-    _thread_errorCheck = std::thread(&SimpleEthercat::_ecatcheck, this);
+    // _thread_errorCheck = std::thread(&SimpleEthercat::_ecatcheck, this);
 
     /* initialise SOEM, bind socket to port_name */
     /*
@@ -161,69 +161,31 @@ void SimpleEthercat::listSlaves(void)
 
 bool SimpleEthercat::setOperationalState(void)
 {
-    ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
-    ec_readstate();
     /*
     By setting ec_slave[0].state to EC_STATE_OPERATIONAL, the code is indicating that the 
     first EtherCAT slave is ready to operate and exchange data with the master. This typically 
     happens after the configuration phase and before the actual data exchange starts in an EtherCAT network.
     */
     ec_slave[0].state = EC_STATE_OPERATIONAL;
-    /* send one valid process data to make outputs in slaves happy*/
-    /*
-    ec_send_processdata(): 
-    This function sends process data to all EtherCAT slaves in the network. 
-    Process data consists of input and output data exchanged between the master and slaves.
 
-    ec_receive_processdata(EC_TIMEOUTRET): 
-    This function receives process data from all EtherCAT slaves in the network. 
-    It waits for a specified timeout (EC_TIMEOUTRET) for the data to be received. 
-    If data is not received within the timeout period, the function may return an error or timeout status.
-
-    Together, these two functions facilitate the exchange of process data between the master and slaves 
-    in an EtherCAT network. This exchange typically occurs cyclically and is essential for real-time 
-    communication and control in industrial automation applications.
-    */
-    ec_send_processdata();
-    ec_receive_processdata(EC_TIMEOUTRET);
-    /* request OP state for all slaves */
     /*
     The code requests the operational state for all slaves by setting their state 
     to EC_STATE_OPERATIONAL using ec_writestate.
     */
-    /*
-    EC_STATE_INIT (0): 
-    This state represents the initialization state. When the slaves are in this state, 
-    they are typically not operational, and initialization tasks such as configuration and setup are performed.
-
-    EC_STATE_PRE_OP (1): 
-    This state represents the pre-operational state. In this state, the slaves are initialized 
-    and configured, but they are not actively participating in the real-time control loop. 
-    This state allows for additional setup and testing before transitioning to full operation.
-
-    EC_STATE_SAFE_OP (2): 
-    This state represents the safe operational state. In this state, the slaves are operational 
-    and ready to participate in the real-time control loop. However, certain safety features or 
-    restrictions may still be active to ensure safe operation.
-
-    EC_STATE_OPERATIONAL (8): 
-    This state represents the fully operational state. In this state, the slaves are actively 
-    participating in the real-time control loop and performing their designated tasks.
-
-    EC_STATE_BOOT (0x20): 
-    This state represents the boot state. It typically indicates that the slaves are starting up or rebooting.
-
-    EC_STATE_BOOTSTRAP (0x40): 
-    This state represents the bootstrap state. It typically indicates that the slaves are 
-    undergoing bootstrap initialization.
-    */
     ec_writestate(0);
+    
+    /*
+    It ensures that all slaves transition to the operational state by repeatedly 
+    checking their state with ec_statecheck. Once all slaves reach the operational state, 
+    the code continues with the cyclic data exchange loop.
+    */
+    ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
+    
     int chk = 200;
     /* wait for all slaves to reach OP state */
     do
     {
-        ec_send_processdata();
-        ec_receive_processdata(EC_TIMEOUTRET);
+        ec_writestate(0);
         /*
         It ensures that all slaves transition to the operational state by repeatedly 
         checking their state with ec_statecheck. Once all slaves reach the operational state, 
@@ -374,6 +336,26 @@ int SimpleEthercat::getState(uint16_t slave_id)
     return ec_slave[slave_id].state;
 }
 
+uint32_t SimpleEthercat::getManufactureID(uint16_t slave_id)
+{
+    if(slave_id > ec_slavecount)
+    {
+        return 0;
+    }
+
+    return ec_slave[slave_id].eep_man;
+}
+
+uint32_t SimpleEthercat::getProductID(uint16_t slave_id)
+{
+    if(slave_id > ec_slavecount)
+    {
+        return 0;
+    }
+
+    return ec_slave[slave_id].eep_id;
+}
+
 void SimpleEthercat::showStates(void)
 {
     _readStates();
@@ -476,24 +458,29 @@ OSAL_THREAD_FUNC SimpleEthercat::_ecatcheck(/*void* ptr*/)
                   }
                }
                if (ec_slave[slave].islost)
-               {
-                  if(ec_slave[slave].state == EC_STATE_NONE)
-                  {
-                     if (ec_recover_slave(slave, EC_TIMEOUTMON))
-                     {
+               {  
+                    if(ec_slave[slave].state == EC_STATE_NONE)
+                    {
+                        if (ec_recover_slave(slave, EC_TIMEOUTMON))
+                        {
+                            ec_slave[slave].islost = FALSE;
+                            printf("MESSAGE : slave %d recovered\n",slave);
+                        }
+                    }
+                    else
+                    {
                         ec_slave[slave].islost = FALSE;
-                        printf("MESSAGE : slave %d recovered\n",slave);
-                     }
-                  }
-                  else
-                  {
-                     ec_slave[slave].islost = FALSE;
-                     printf("MESSAGE : slave %d found\n",slave);
-                  }
+                        printf("MESSAGE : slave %d found\n",slave);
+                    }
                }
             }
             if(!ec_group[_currentgroup].docheckstate)
-               printf("OK : all slaves resumed OPERATIONAL.\n");
+            {
+                printf("SDCSDC\n");
+                ec_group[_currentgroup].docheckstate = FALSE;
+                printf("OK : all slaves resumed OPERATIONAL.\n");
+            }
+               
         }
         /*
         Sleep: The function sleeps for a short duration (osal_usleep(10000)) before the next 
