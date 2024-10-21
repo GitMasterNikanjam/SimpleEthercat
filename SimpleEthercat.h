@@ -36,7 +36,10 @@ public:
     // Print list of slaves that detected. show slave number, name, RX size,TX size, state, Pdelay and distrubution clock ability.
     void listSlaves(void);
 
-    // set Byte Alignment for IOmap buffer.
+    /**
+     * @brief set Byte Alignment for IOmap buffer. 
+     * @note Some not all slaves changes ethercat mode to safe_operational.
+     */ 
     bool configMap(void);
 
     // set distrubution clock for all slaves. 
