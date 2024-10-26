@@ -565,6 +565,12 @@ std::string SimpleEthercat::_slaveStateNum2Str(int num_state)
         case EC_STATE_OPERATIONAL:
             str_state = "OP";
         break;
+        case EC_STATE_NONE:
+            str_state = "NONE";
+        break;
+        case EC_STATE_ERROR:
+            str_state = "ERROR/ACK";
+        break;
         default:
             str_state = "NONE";
     }

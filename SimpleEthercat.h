@@ -66,7 +66,17 @@ public:
     // Set safe operational state for all slaves. 
     bool setSafeOperationalState(void);
 
-    // Set operational state for all slaves.
+    /**
+     * @brief Set operational state for all slaves.
+     * @warning 
+     * - Some devices have a watchdog timer enabled after entering the operational state. 
+     * If the EtherCAT slave mode is changed to the operational state and the process data is not updated 
+     * for that slave, it may switch to the error state.
+     * 
+     * - After the slave returns to the Operational state, ensure that your master continues sending 
+     * regular process data cyclically to keep the sync manager watchdog satisfied. If there are no updates, 
+     * the watchdog might cause the slave to revert to an error state again.
+     */ 
     bool setOperationalState(void);
 
     // Check if all detected slaves are in operational mode. return true/false.
