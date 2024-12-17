@@ -161,6 +161,8 @@ void SimpleEthercat::listSlaves(void)
 
 bool SimpleEthercat::setOperationalState(void)
 {
+    ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
+    ec_readstate();
     /*
     By setting ec_slave[0].state to EC_STATE_OPERATIONAL, the code is indicating that the 
     first EtherCAT slave is ready to operate and exchange data with the master. This typically 
@@ -168,6 +170,9 @@ bool SimpleEthercat::setOperationalState(void)
     */
     ec_slave[0].state = EC_STATE_OPERATIONAL;
 
+    ec_send_processdata();
+    ec_receive_processdata(EC_TIMEOUTRET);
+    
     /*
     The code requests the operational state for all slaves by setting their state 
     to EC_STATE_OPERATIONAL using ec_writestate.
@@ -179,7 +184,7 @@ bool SimpleEthercat::setOperationalState(void)
     checking their state with ec_statecheck. Once all slaves reach the operational state, 
     the code continues with the cyclic data exchange loop.
     */
-    ec_statecheck(0, EC_STATE_OPERATIONAL, 50000);
+    ec_statecheck(0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE * 4);
     
     int chk = 200;
     /* wait for all slaves to reach OP state */
@@ -196,13 +201,16 @@ bool SimpleEthercat::setOperationalState(void)
     while (chk-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
 
     ec_readstate();
-
-    if(ec_slave[0].state != EC_STATE_OPERATIONAL)
-    {
-        errorMessage = "Slaves state can not set to operational state.";
-        return FALSE;
-    }
         
+    for (int i = 1; i <= ec_slavecount; i++) 
+    {
+        if (ec_slave[i].state != EC_STATE_OPERATIONAL) 
+        {
+            printf("Slave %d AL status code: %s. Current state: %d\n", i, ec_ALstatuscode2string(ec_slave[i].ALstatuscode), ec_slave[i].state);
+            errorMessage = "Slaves state can not set to operational state.";
+            return false;
+        }
+    }
 
     _state = EC_STATE_OPERATIONAL;
 
@@ -262,12 +270,14 @@ bool SimpleEthercat::setPreOperationalState(void)
 bool SimpleEthercat::setSafeOperationalState(void)
 {
     bool flag = false;
+
+    // Explicitly request all slaves to enter SAFE_OP state
+    for (int i = 1; i <= ec_slavecount; i++) {
+        ec_slave[i].state = EC_STATE_SAFE_OP;
+    }
+    ec_writestate(0); // Send the state request to all slaves
+
     // Wait for all slaves to reach SAFE_OP state
-    ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 3);
-
-    ec_readstate();
-
-    /* wait for all slaves to reach SAFE_OP state */
     /*
     The function ec_statecheck is used to transition all slaves to the SAFE_OP (safe operational) state.
     It waits for all slaves to reach the SAFE_OP state within a specified timeout.
@@ -288,25 +298,40 @@ bool SimpleEthercat::setSafeOperationalState(void)
     EC_TIMEOUTSTATE is a predefined constant representing the default timeout value for state checks. 
     Multiplying it by 4 extends the timeout duration.
     */
-    flag = (ec_statecheck(0, EC_STATE_SAFE_OP,  EC_TIMEOUTSTATE * 4) == EC_STATE_SAFE_OP);
+    flag = (ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4) == EC_STATE_SAFE_OP);
 
-    /*
+    // Re-read state to verify
+    ec_readstate();
+
+    /* Update expected Working Counter (WKC)
     expectedWKC represents the expected total number of working counters for both output 
     and input process data frames in the EtherCAT network, and it is used for monitoring and 
     synchronization purposes within the network.
     */
     _expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
 
-    if(flag == TRUE)
+    // Verify all slaves are in SAFE_OP state
+    if (flag)
     {
         _state = EC_STATE_SAFE_OP;
     }
     else
     {
-        errorMessage = "Slave state can not set to SafeOperation state.";
+        char s[200];
+        // Check which slaves failed to reach SAFE_OP
+        for (int i = 1; i <= ec_slavecount; i++) 
+        {
+            if (ec_slave[i].state != EC_STATE_SAFE_OP) 
+            {
+                sprintf(s,"Slave %d failed to reach SAFE_OP. State: %2x, StatusCode: %4x : %s\nCheck slave configuration at pre_operational mode.\n",
+                i, ec_slave[i].state, ec_slave[i].ALstatuscode, ec_ALstatuscode2string(ec_slave[i].ALstatuscode));
+                errorMessage = s;
+            }
+        }
     }
 
     return flag;
+
 }
 
 void SimpleEthercat::close(void)
@@ -539,6 +564,12 @@ std::string SimpleEthercat::_slaveStateNum2Str(int num_state)
         break;
         case EC_STATE_OPERATIONAL:
             str_state = "OP";
+        break;
+        case EC_STATE_NONE:
+            str_state = "NONE";
+        break;
+        case EC_STATE_ERROR:
+            str_state = "ERROR/ACK";
         break;
         default:
             str_state = "NONE";

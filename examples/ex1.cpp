@@ -40,7 +40,7 @@ int main(void)
 
     if(ethercat.configSlaves())
     {
-        printf("Slaves mapped, state to SAFE_OP.\n");
+        printf("Slaves mapped, state to PRE_OP.\n");
     }
     else
     {
@@ -48,12 +48,11 @@ int main(void)
     }
 
     printf("%d slaves found and configured.\n",ethercat.getSlaveCount());
-
+ethercat.listSlaves();
     ethercat.configMap();
     ethercat.configDc();
 
     ethercat.listSlaves();
-
     if(ethercat.setOperationalState())
     {
         printf("Operational state reached for all slaves.\n");

@@ -1,5 +1,5 @@
 // For compile: g++ -o slaveinfo slaveinfo.cpp -lsoem
-// For run: sudo ./slaveinfo
+// For run: sudo ./slaveinfo enp2s0
 
 /** \file
  * \brief Example code for Simple Open EtherCAT master
@@ -24,7 +24,7 @@
 #include <iostream>         // the standard input-output library, which provides functions like printf() and scanf()
 #include <string.h>         // string manipulation library, which provides functions like strcpy() and strcat()
 #include <inttypes.h>       // handling integer types with specific widths, such as int8_t and uint64_t
-
+#include <unistd.h> // Include this for usleep()
 #include "ethercat.h"       // Ethernet communication (EtherCAT)
 
 using namespace std;
@@ -820,6 +820,7 @@ void slaveinfo(char *ifname)
    /* initialise SOEM, bind socket to ifname */
    if (ec_init(ifname))
    {
+      usleep(100000);
       printf("ec_init on %s succeeded.\n",ifname);
       /* find and auto-config slaves */
       /*
@@ -840,7 +841,8 @@ void slaveinfo(char *ifname)
          expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
          printf("Calculated workcounter %d\n", expectedWKC);
          /* wait for all slaves to reach SAFE_OP state */
-         ec_statecheck(0, EC_STATE_SAFE_OP,  EC_TIMEOUTSTATE * 3);
+         ec_statecheck(0, EC_STATE_SAFE_OP,  EC_TIMEOUTSTATE * 5);
+         usleep(100000);
          if (ec_slave[0].state != EC_STATE_SAFE_OP )
          {
             printf("Not all slaves reached safe operational state.\n");
@@ -860,6 +862,7 @@ void slaveinfo(char *ifname)
 
          for( cnt = 1 ; cnt <= ec_slavecount ; cnt++)
          {
+            usleep(10000); // 10 ms delay for readability
             printf("\nSlave:%d\n Name:%s\n Output size: %dbits\n Input size: %dbits\n State: %d\n Delay: %d[ns]\n Has DC: %d\n",
                   cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
                   ec_slave[cnt].state, ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
